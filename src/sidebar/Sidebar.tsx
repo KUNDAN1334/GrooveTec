@@ -3,6 +3,9 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { logger } from '../shared/utils/logger';
 import { sendToBackground } from '../shared/utils/messaging';
 import { MessageType } from '../shared/types';
+import { HistoryTab } from './tabs/HistoryTab';
+import { QuickActionsTab } from './tabs/QuickActionsTab';
+import { KnowledgeBaseTab } from './tabs/KnowledgeBaseTab';
 import './sidebar.css';
 
 interface SidebarProps {
@@ -12,7 +15,9 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'info' | 'ai' | 'settings'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'history' | 'ai' | 'kb' | 'actions' | 'settings'>('info');
+  const [ticketData, setTicketData] = useState<any>(null);
+  const [ticketStatus, setTicketStatus] = useState('active');
   const [replyText, setReplyText] = useState('');
   const [qualityResult, setQualityResult] = useState<any>(null);
   const [isChecking, setIsChecking] = useState(false);
@@ -20,15 +25,44 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
   const [isGenerating, setIsGenerating] = useState(false);
   
   useEffect(() => {
-    logger.log(' Sidebar mounted with ticket:', ticketId);
+    logger.log('Sidebar mounted with ticket:', ticketId);
     
     // Simulate initial loading
     setTimeout(() => {
       setIsLoading(false);
+      
+      // Fetch ticket data if available
+      if (ticketId) {
+        fetchTicketData();
+      }
     }, 800);
   }, [ticketId]);
   
-  // Check quality function
+  const fetchTicketData = async () => {
+    if (!ticketId) return;
+    
+    try {
+      logger.log('Fetching ticket data...');
+      
+      const response = await sendToBackground({
+        type: MessageType.FETCH_TICKET_DATA,
+        payload: { ticketId }
+      });
+      
+      if (response.success) {
+        setTicketData(response.ticket);
+        setTicketStatus(response.ticket.status);
+        logger.success('Ticket data loaded');
+      } else {
+        logger.warn('Failed to fetch ticket data:', response.error);
+      }
+      
+    } catch (error) {
+      logger.error('Fetch ticket error:', error);
+    }
+  };
+  
+  // Quality check handler
   const handleCheckQuality = async () => {
     if (!replyText.trim()) {
       alert('Please enter some text to check quality');
@@ -58,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
     }
   };
   
-  // Generate suggestion
+  // Generate suggestion handler
   const handleGenerateSuggestion = async () => {
     setIsGenerating(true);
     setSuggestion('');
@@ -67,8 +101,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
       const response = await sendToBackground({
         type: MessageType.GENERATE_SUGGESTION,
         payload: {
-          subject: 'Customer Support Request',
-          message: 'Customer needs help with their account',
+          subject: ticketData?.subject || 'Customer Support Request',
+          message: customerEmail || 'Customer needs help',
           style: 'professional and friendly'
         }
       });
@@ -95,6 +129,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
     );
   }
   
+  // Extract customer ID from ticket data
+  const customerId = ticketData?.customer?.id || '0';
+  const ticketSubject = ticketData?.subject || 'Support Request';
+  
   return (
     <div className="sidebar-container">
       {/* Header */}
@@ -112,19 +150,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
           className={`tab ${activeTab === 'info' ? 'active' : ''}`}
           onClick={() => setActiveTab('info')}
         >
-           Info
+          Info
+        </button>
+        <button 
+          className={`tab ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          History
         </button>
         <button 
           className={`tab ${activeTab === 'ai' ? 'active' : ''}`}
           onClick={() => setActiveTab('ai')}
         >
-           AI Tools
+          AI Tools
+        </button>
+        <button 
+          className={`tab ${activeTab === 'kb' ? 'active' : ''}`}
+          onClick={() => setActiveTab('kb')}
+        >
+          KB
+        </button>
+        <button 
+          className={`tab ${activeTab === 'actions' ? 'active' : ''}`}
+          onClick={() => setActiveTab('actions')}
+        >
+          Actions
         </button>
         <button 
           className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => setActiveTab('settings')}
         >
-           Settings
+          Settings
         </button>
       </div>
       
@@ -144,28 +200,46 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
               
               <div className="info-item">
                 <span className="info-label">Customer</span>
-                <span className="info-value">{customerEmail || 'Not available'}</span>
+                <span className="info-value">{customerEmail || ticketData?.customer?.email || 'Not available'}</span>
               </div>
               
               <div className="info-item">
                 <span className="info-label">Status</span>
-                <span className="status-badge success">Active</span>
+                <span className={`status-badge ${ticketStatus}`}>
+                  {ticketStatus}
+                </span>
               </div>
+              
+              {ticketData?.subject && (
+                <div className="info-item">
+                  <span className="info-label">Subject</span>
+                  <span className="info-value">{ticketData.subject}</span>
+                </div>
+              )}
             </div>
             
             <div className="status-message success">
-              ✓ GrooveMate is active and ready to help!
+              GrooveMate is active and ready to help!
             </div>
             
             <div className="info-box">
-              <h4> Quick Start</h4>
+              <h4>Quick Start</h4>
               <ul className="feature-list">
-                <li>✓ Ticket page detected</li>
-                <li>✓ AI tools ready</li>
-                <li>✓ Quality checker active</li>
+                <li>Ticket page detected</li>
+                <li>AI tools ready</li>
+                <li>Quality checker active</li>
+                <li>Customer history available</li>
               </ul>
             </div>
           </div>
+        )}
+        
+        {/* History Tab - REAL-TIME FROM TICKET ID */}
+        {activeTab === 'history' && (
+          <HistoryTab 
+            customerId={customerId}
+            ticketId={ticketId}
+          />
         )}
         
         {/* AI Tools Tab */}
@@ -175,7 +249,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
             
             {/* Quality Checker */}
             <div className="tool-section">
-              <h4> Quality Checker</h4>
+              <h4>Quality Checker</h4>
               <p className="tool-description">
                 Check your reply for clarity, empathy, and professionalism
               </p>
@@ -193,7 +267,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
                 onClick={handleCheckQuality}
                 disabled={isChecking}
               >
-                {isChecking ? ' Checking...' : ' Check Quality'}
+                {isChecking ? 'Checking...' : 'Check Quality'}
               </button>
               
               {qualityResult && (
@@ -204,7 +278,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
                   
                   {qualityResult.issues.length > 0 && (
                     <div className="issues-section">
-                      <strong> Issues:</strong>
+                      <strong>Issues:</strong>
                       <ul>
                         {qualityResult.issues.map((issue: string, idx: number) => (
                           <li key={idx}>{issue}</li>
@@ -215,7 +289,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
                   
                   {qualityResult.suggestions.length > 0 && (
                     <div className="suggestions-section">
-                      <strong> Suggestions:</strong>
+                      <strong>Suggestions:</strong>
                       <ul>
                         {qualityResult.suggestions.map((suggestion: string, idx: number) => (
                           <li key={idx}>{suggestion}</li>
@@ -229,7 +303,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
             
             {/* AI Suggestion Generator */}
             <div className="tool-section">
-              <h4> AI Reply Generator</h4>
+              <h4>✨ AI Reply Generator</h4>
               <p className="tool-description">
                 Generate professional reply suggestions
               </p>
@@ -239,7 +313,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
                 onClick={handleGenerateSuggestion}
                 disabled={isGenerating}
               >
-                {isGenerating ? ' Generating...' : ' Generate Reply'}
+                {isGenerating ? 'Generating...' : 'Generate Reply'}
               </button>
               
               {suggestion && (
@@ -253,7 +327,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
                       alert('Copied to clipboard!');
                     }}
                   >
-                    📋 Copy
+                    Copy
                   </button>
                 </div>
               )}
@@ -261,40 +335,98 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
           </div>
         )}
         
+        {/* Knowledge Base Tab */}
+        {activeTab === 'kb' && (
+          <KnowledgeBaseTab ticketSubject={ticketSubject} />
+        )}
+        
+        {/* Quick Actions Tab */}
+        {activeTab === 'actions' && (
+          <QuickActionsTab 
+            ticketId={ticketId || '0'}
+            currentStatus={ticketStatus}
+            onStatusChange={setTicketStatus}
+          />
+        )}
+        
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="tab-content">
             <h3 className="section-title">Settings</h3>
             
-            <div className="settings-section">
-              <h4> API Configuration</h4>
-              <p className="settings-description">
-                Configure your Groq API key for AI features
+            <div style={{
+              background: 'linear-gradient(135deg, #f5f8fc 0%, #e8f3ff 100%)',
+              border: '2px solid #d0e0ff',
+              borderRadius: '12px',
+              padding: '24px',
+              marginBottom: '24px',
+              textAlign: 'center'
+            }}>
+              <h4 style={{
+                fontSize: '15px',
+                fontWeight: 800,
+                color: '#120036',
+                marginBottom: '12px'
+              }}>API Configuration</h4>
+              <p style={{
+                fontSize: '13px',
+                color: '#666',
+                marginBottom: '18px',
+                lineHeight: 1.6
+              }}>
+                Configure your API keys for full functionality
               </p>
               
-              <div className="settings-notice">
-                <strong>ℹ️ Setup Instructions:</strong>
-                <ol>
-                  <li>Get free API key from <a href="https://console.groq.com" target="_blank">console.groq.com</a></li>
-                  <li>Open Chrome Extension settings</li>
-                  <li>Enter your API key</li>
-                  <li>Save and reload</li>
-                </ol>
-              </div>
-              
               <button 
-                className="btn-settings"
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: '#19B4FF',
+                  color: '#120036',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.25s ease'
+                }}
                 onClick={() => chrome.runtime.openOptionsPage()}
+                onMouseOver={(e) => {
+                  (e.target as HTMLButtonElement).style.background = '#0a9ed9';
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.background = '#19B4FF';
+                }}
               >
-                 Open Settings Page
+                Open Settings Page
               </button>
             </div>
             
-            <div className="settings-section">
-              <h4> About</h4>
-              <p>GrooveMate v1.0.0</p>
-              <p className="about-text">
-                AI-powered assistant for Groove customer support agents.
+            <div style={{
+              background: 'linear-gradient(135deg, #f5f8fc 0%, #e8f3ff 100%)',
+              border: '2px solid #d0e0ff',
+              borderRadius: '12px',
+              padding: '24px',
+              textAlign: 'center'
+            }}>
+              <h4 style={{
+                fontSize: '15px',
+                fontWeight: 800,
+                color: '#120036',
+                marginBottom: '14px'
+              }}>📖 About</h4>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#120036',
+                marginBottom: '8px'
+              }}>GrooveMate v1.0.0 - Phase 2</p>
+              <p style={{
+                fontSize: '13px',
+                color: '#666',
+                lineHeight: 1.7
+              }}>
+                🤖 AI-powered assistant for Groove customer support agents.
               </p>
             </div>
           </div>
@@ -309,7 +441,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
           <span className="footer-separator">•</span>
           <a href="#" className="footer-link">Feedback</a>
         </div>
-        <p className="footer-version">v1.0.0 - Phase 1</p>
+        <p className="footer-version">v1.0.0 - Phase 2</p>
       </div>
     </div>
   );
