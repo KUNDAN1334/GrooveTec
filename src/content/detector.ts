@@ -16,7 +16,7 @@ export class GroovePageDetector {
       url
     };
     
-    logger.info('🔍 Page detection result:', pageInfo);
+    logger.info(' Page detection result:', pageInfo);
     return pageInfo;
   }
   
@@ -84,7 +84,7 @@ export class GroovePageDetector {
       const startTime = Date.now();
       const timeout = 10000; // 10 seconds
       
-      logger.log('⏳ Waiting for Groove UI to load...');
+      logger.log(' Waiting for Groove UI to load...');
       
       const checkInterval = setInterval(() => {
         // Check if conversation view exists
@@ -93,7 +93,7 @@ export class GroovePageDetector {
         for (const selector of selectors) {
           const element = document.querySelector(selector.trim());
           if (element) {
-            logger.success('✅ Groove UI loaded!');
+            logger.success('Groove UI loaded!');
             clearInterval(checkInterval);
             resolve();
             return;
@@ -102,7 +102,7 @@ export class GroovePageDetector {
         
         // Timeout check
         if (Date.now() - startTime > timeout) {
-          logger.warn('⚠️ Groove UI load timeout');
+          logger.warn(' Groove UI load timeout');
           clearInterval(checkInterval);
           resolve(); // Resolve anyway to continue
         }

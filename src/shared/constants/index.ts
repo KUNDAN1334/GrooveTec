@@ -25,9 +25,10 @@ export const GROOVE_SELECTORS = {
   // Groq models
   export const GROQ_MODELS = {
     FAST: 'llama-3.1-8b-instant',
-    BALANCED: 'llama-3.1-70b-versatile',
+    BALANCED: 'llama-3.1-8b-instant',  // Changed from 70b (deprecated)
     QUALITY: 'mixtral-8x7b-32768'
   };
+  
   
   // Debug mode
   export const DEBUG = true;

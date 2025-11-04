@@ -20,7 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
   const [isGenerating, setIsGenerating] = useState(false);
   
   useEffect(() => {
-    logger.log('🎨 Sidebar mounted with ticket:', ticketId);
+    logger.log(' Sidebar mounted with ticket:', ticketId);
     
     // Simulate initial loading
     setTimeout(() => {
@@ -112,19 +112,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
           className={`tab ${activeTab === 'info' ? 'active' : ''}`}
           onClick={() => setActiveTab('info')}
         >
-          📋 Info
+           Info
         </button>
         <button 
           className={`tab ${activeTab === 'ai' ? 'active' : ''}`}
           onClick={() => setActiveTab('ai')}
         >
-          🤖 AI Tools
+           AI Tools
         </button>
         <button 
           className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => setActiveTab('settings')}
         >
-          ⚙️ Settings
+           Settings
         </button>
       </div>
       
@@ -158,7 +158,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
             </div>
             
             <div className="info-box">
-              <h4>🚀 Quick Start</h4>
+              <h4> Quick Start</h4>
               <ul className="feature-list">
                 <li>✓ Ticket page detected</li>
                 <li>✓ AI tools ready</li>
@@ -175,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
             
             {/* Quality Checker */}
             <div className="tool-section">
-              <h4>✅ Quality Checker</h4>
+              <h4> Quality Checker</h4>
               <p className="tool-description">
                 Check your reply for clarity, empathy, and professionalism
               </p>
@@ -193,7 +193,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
                 onClick={handleCheckQuality}
                 disabled={isChecking}
               >
-                {isChecking ? '🔍 Checking...' : '🔍 Check Quality'}
+                {isChecking ? ' Checking...' : ' Check Quality'}
               </button>
               
               {qualityResult && (
@@ -204,7 +204,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
                   
                   {qualityResult.issues.length > 0 && (
                     <div className="issues-section">
-                      <strong>⚠️ Issues:</strong>
+                      <strong> Issues:</strong>
                       <ul>
                         {qualityResult.issues.map((issue: string, idx: number) => (
                           <li key={idx}>{issue}</li>
@@ -215,7 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
                   
                   {qualityResult.suggestions.length > 0 && (
                     <div className="suggestions-section">
-                      <strong>💡 Suggestions:</strong>
+                      <strong> Suggestions:</strong>
                       <ul>
                         {qualityResult.suggestions.map((suggestion: string, idx: number) => (
                           <li key={idx}>{suggestion}</li>
@@ -229,7 +229,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
             
             {/* AI Suggestion Generator */}
             <div className="tool-section">
-              <h4>✨ AI Reply Generator</h4>
+              <h4> AI Reply Generator</h4>
               <p className="tool-description">
                 Generate professional reply suggestions
               </p>
@@ -239,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
                 onClick={handleGenerateSuggestion}
                 disabled={isGenerating}
               >
-                {isGenerating ? '✨ Generating...' : '✨ Generate Reply'}
+                {isGenerating ? ' Generating...' : ' Generate Reply'}
               </button>
               
               {suggestion && (
@@ -267,7 +267,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
             <h3 className="section-title">Settings</h3>
             
             <div className="settings-section">
-              <h4>🔑 API Configuration</h4>
+              <h4> API Configuration</h4>
               <p className="settings-description">
                 Configure your Groq API key for AI features
               </p>
@@ -286,16 +286,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
                 className="btn-settings"
                 onClick={() => chrome.runtime.openOptionsPage()}
               >
-                ⚙️ Open Settings Page
+                 Open Settings Page
               </button>
             </div>
             
             <div className="settings-section">
-              <h4>📖 About</h4>
+              <h4> About</h4>
               <p>GrooveMate v1.0.0</p>
               <p className="about-text">
                 AI-powered assistant for Groove customer support agents.
-                Built with ❤️ to empower support teams.
               </p>
             </div>
           </div>
