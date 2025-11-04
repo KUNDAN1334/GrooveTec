@@ -1,16 +1,18 @@
 {
-  "name": "groovetec",
+  "name": "groovemate",
   "version": "1.0.0",
   "description": "AI-powered assistant for Groove customer support agents",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "webpack --mode development --watch",
+    "build": "webpack --mode production",
+    "clean": "rm -rf dist"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/KUNDAN1334/GrooveTec.git"
   },
-  "keywords": [],
+  "keywords": ["groove", "chrome-extension", "ai", "customer-support"],
   "author": "",
   "license": "ISC",
   "bugs": {

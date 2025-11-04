@@ -2,30 +2,21 @@
     "manifest_version": 3,
     "name": "GrooveMate",
     "version": "1.0.0",
-    "description": "AI-powered assistant that empowers Groove customer support agents",
+    "description": "AI-powered assistant for Groove",
     
-    "permissions": [
-      "storage",
-      "activeTab"
-    ],
-    
-    "host_permissions": [
-      "https://*.groovehq.com/*",
-      "https://api.groq.com/*"
-    ],
+    "permissions": ["storage", "activeTab"],
+    "host_permissions": ["https://*.groovehq.com/*"],
     
     "background": {
       "service_worker": "background.js",
       "type": "module"
     },
     
-    "content_scripts": [
-      {
-        "matches": ["https://*.groovehq.com/*"],
-        "js": ["content.js"],
-        "run_at": "document_idle"
-      }
-    ],
+    "content_scripts": [{
+      "matches": ["https://*.groovehq.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }],
     
     "action": {
       "default_popup": "popup.html",
@@ -40,13 +31,6 @@
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
-    },
-    
-    "web_accessible_resources": [
-      {
-        "resources": ["icons/*"],
-        "matches": ["https://*.groovehq.com/*"]
-      }
-    ]
+    }
   }
   
