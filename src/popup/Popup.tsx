@@ -20,8 +20,23 @@ export const Popup: React.FC = () => {
     });
   }, []);
   
-  const openSettings = () => {
-    chrome.runtime.openOptionsPage();
+  // Configure API Key Handler
+  const configureApiKey = () => {
+    const groqKey = prompt('Enter your Groq API key (gsk_...)');
+    if (!groqKey) return;
+    
+    const grooveKey = prompt('Enter your Groove API key');
+    if (!grooveKey) return;
+    
+    // Save to Chrome storage
+    chrome.storage.local.set({
+      groqApiKey: groqKey,
+      grooveApiKey: grooveKey
+    }, () => {
+      alert('✅ API keys saved successfully!');
+      setHasApiKey(true);
+      chrome.runtime.reload();
+    });
   };
   
   return (
@@ -32,7 +47,7 @@ export const Popup: React.FC = () => {
         <span className="version-badge">v1.0.0</span>
       </div>
       
-      {/* Status */}
+      {/* Content */}
       <div className="popup-content">
         {isActive ? (
           <div className="status-card active">
@@ -52,20 +67,19 @@ export const Popup: React.FC = () => {
           </div>
         )}
         
-        {/* API Key Status */}
         {!hasApiKey && (
           <div className="warning-card">
             <strong>⚠️ Setup Required</strong>
-            <p>Add your Groq API key to enable AI features</p>
-            <button className="btn-setup" onClick={openSettings}>
-              Configure API Key
+            <p>Add your API keys to enable AI features</p>
+            <button className="btn-setup" onClick={configureApiKey}>
+              Configure API Keys
             </button>
           </div>
         )}
         
         {hasApiKey && (
           <div className="success-card">
-            <strong>✓ API Key Configured</strong>
+            <strong>✓ API Keys Configured</strong>
             <p>All AI features are ready to use</p>
           </div>
         )}
@@ -96,10 +110,7 @@ export const Popup: React.FC = () => {
       
       {/* Footer */}
       <div className="popup-footer">
-        <button className="footer-btn" onClick={openSettings}>
-          ⚙️ Settings
-        </button>
-        <button className="footer-btn" onClick={() => window.open('https://github.com/yourusername/groovemate')}>
+        <button className="footer-btn" onClick={() => window.open('https://github.com')}>
           📖 Help
         </button>
       </div>

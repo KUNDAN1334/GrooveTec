@@ -16,18 +16,22 @@ export class GroovePageDetector {
       url
     };
     
-    logger.info(' Page detection result:', pageInfo);
+    logger.info('🔍 Page detection result:', pageInfo);
     return pageInfo;
   }
   
   // Check if URL is a ticket page
   private static isTicketPage(url: string): boolean {
-    return GROOVE_SELECTORS.TICKET_URL_PATTERN.test(url);
+    // Match patterns like:
+    // /tickets/123
+    // /tickets/1?channel=...
+    // groovehq.com/tickets/
+    return /\/tickets\/\d+/.test(url) || url.includes('groovehq.com/tickets/');
   }
   
   // Extract ticket ID from URL
   private static extractTicketId(url: string): string | null {
-    const match = url.match(GROOVE_SELECTORS.TICKET_URL_PATTERN);
+    const match = url.match(/\/tickets\/(\d+)/);
     return match ? match[1] : null;
   }
   
@@ -80,7 +84,7 @@ export class GroovePageDetector {
       const startTime = Date.now();
       const timeout = 10000; // 10 seconds
       
-      logger.log(' Waiting for Groove UI to load...');
+      logger.log('⏳ Waiting for Groove UI to load...');
       
       const checkInterval = setInterval(() => {
         // Check if conversation view exists
@@ -89,7 +93,7 @@ export class GroovePageDetector {
         for (const selector of selectors) {
           const element = document.querySelector(selector.trim());
           if (element) {
-            logger.success(' Groove UI loaded!');
+            logger.success('✅ Groove UI loaded!');
             clearInterval(checkInterval);
             resolve();
             return;
@@ -98,7 +102,7 @@ export class GroovePageDetector {
         
         // Timeout check
         if (Date.now() - startTime > timeout) {
-          logger.warn(' Groove UI load timeout');
+          logger.warn('⚠️ Groove UI load timeout');
           clearInterval(checkInterval);
           resolve(); // Resolve anyway to continue
         }
