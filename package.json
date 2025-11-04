@@ -1,0 +1,37 @@
+{
+  "name": "groovetec",
+  "version": "1.0.0",
+  "description": "AI-powered assistant for Groove customer support agents",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KUNDAN1334/GrooveTec.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KUNDAN1334/GrooveTec/issues"
+  },
+  "homepage": "https://github.com/KUNDAN1334/GrooveTec#readme",
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.27",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "copy-webpack-plugin": "^13.0.1",
+    "css-loader": "^7.1.2",
+    "html-webpack-plugin": "^5.6.4",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.3",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1"
+  }
+}
