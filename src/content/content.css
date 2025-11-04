@@ -1,0 +1,36 @@
+/* Reset styles for sidebar */
+#groovemate-sidebar * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  #groovemate-sidebar {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #1f2937;
+  }
+  
+  /* Scrollbar styling */
+  #groovemate-sidebar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  #groovemate-sidebar::-webkit-scrollbar-track {
+    background: #f3f4f6;
+  }
+  
+  #groovemate-sidebar::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+  }
+  
+  #groovemate-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+  
+  /* Smooth transitions */
+  #groovemate-sidebar * {
+    transition: all 0.2s ease;
+  }
+  
