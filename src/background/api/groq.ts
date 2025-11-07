@@ -27,7 +27,7 @@ export class GroqAPI {
       }
     }
     
-    logger.log('🤖 Calling Groq API with model:', model);
+    logger.log('Calling Groq API with model:', model);
     
     const response = await fetch(API_ENDPOINTS.GROQ_CHAT, {
       method: 'POST',
@@ -38,8 +38,9 @@ export class GroqAPI {
       body: JSON.stringify({
         model,
         messages,
-        temperature: 0.3,
-        max_tokens: 1024
+        temperature: 0.7, // INCREASED from 0.3 for more variety
+        max_tokens: 1024,
+        top_p: 0.9
       })
     });
     
@@ -79,7 +80,7 @@ Score should be 0-100. If no issues, return empty arrays.`;
     const messages = [
       {
         role: 'system',
-        content: 'You are a customer support quality analyst. Return only valid JSON.'
+        content: 'You are a customer support quality analyst. Return only valid JSON with no extra text.'
       },
       {
         role: 'user',
@@ -110,30 +111,45 @@ Score should be 0-100. If no issues, return empty arrays.`;
     }
   }
   
-  // Generate AI reply suggestion
+  // Generate AI reply suggestion - NOW WITH FULL CONTEXT!
   async generateSuggestion(
-    ticketSubject: string, 
-    customerMessage: string,
-    agentStyle: string = 'professional and friendly'
+    subject: string,
+    message: string,
+    customerName?: string,
+    customerEmail?: string,
+    category?: string,
+    priority?: string,
+    style: string = 'professional and friendly'
   ): Promise<string> {
-    const prompt = `Generate a helpful customer support reply.
+    // Build context-rich prompt
+    const contextInfo = `
+CUSTOMER: ${customerName || 'Customer'}
+PRIORITY: ${priority || 'Normal'}
+CATEGORY: ${category || 'General Support'}
+SUBJECT: ${subject}
+ISSUE: ${message}`;
 
-Ticket Subject: ${ticketSubject}
-Customer Message: ${customerMessage}
-Writing Style: ${agentStyle}
+    const prompt = `You are an expert customer support representative. Write a personalized response to this customer support ticket.
 
-Write a clear, empathetic response that:
-- Addresses the customer's concern directly
-- Provides helpful information or next steps
-- Maintains a ${agentStyle} tone
-- Is concise (2-4 sentences)
+${contextInfo}
 
-Reply:`;
+REQUIREMENTS:
+1. Address the customer by their name (${customerName || 'Customer'})
+2. Acknowledge THEIR SPECIFIC ISSUE, not a generic problem
+3. Show empathy and understanding
+4. Provide clear, actionable next steps
+5. Maintain a ${style} tone
+6. Keep it concise (2-4 sentences)
+7. NO generic templates or placeholders
+8. NO "Dear valued customer" - be personal!
+9. Reference specific details from their issue
+
+WRITE ONLY THE RESPONSE, NO INTRODUCTION:`;
 
     const messages = [
       {
         role: 'system',
-        content: 'You are a helpful customer support agent. Write clear, empathetic responses.'
+        content: `You are a professional customer support agent. Create unique, personalized responses tailored to the specific customer issue. Never use generic templates. Always reference the customer's specific problem and provide relevant solutions.`
       },
       {
         role: 'user',
@@ -142,8 +158,16 @@ Reply:`;
     ];
     
     try {
+      logger.log('Generating contextual suggestion with full details...');
       const response = await this.request(messages, GROQ_MODELS.BALANCED);
+      
+      if (!response || response.trim().length === 0) {
+        throw new Error('Empty response from Groq API');
+      }
+      
+      logger.success('Unique suggestion generated');
       return response.trim();
+      
     } catch (error) {
       logger.error('Suggestion generation failed:', error);
       throw error;

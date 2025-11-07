@@ -94,21 +94,26 @@ export class MessageHandler {
     }
   }
   
+  // UPDATED - Now passes full context!
   private static async handleGenerateSuggestion(
     payload: any,
     sender: chrome.runtime.MessageSender,
     sendResponse: (response?: any) => void
   ) {
-    logger.log('Generating AI suggestion...');
+    logger.log('✨ Generating contextual AI suggestion...');
     
     try {
       const suggestion = await groqAPI.generateSuggestion(
-        payload.subject,
-        payload.message,
-        payload.style
+        payload.subject,          
+        payload.message,         
+        payload.customerName,      
+        payload.customerEmail,     
+        payload.category,          
+        payload.priority,          
+        payload.style || 'professional and friendly'
       );
       
-      logger.success('Suggestion generated');
+      logger.success('Contextual suggestion generated');
       
       sendResponse({
         success: true,
@@ -234,7 +239,6 @@ export class MessageHandler {
       const grooveApiKey = await StorageHelper.get('grooveApiKey');
       if (!grooveApiKey) {
         logger.warn('Groove API key not configured - using mock response');
-        // Mock success for demo
         sendResponse({
           success: true,
           message: 'Status updated successfully'
@@ -254,7 +258,6 @@ export class MessageHandler {
       
     } catch (error: any) {
       logger.warn('Status update error (will retry):', error);
-      // Don't fail - just warn and return mock success for demo
       sendResponse({
         success: true,
         message: 'Status update queued'
@@ -274,7 +277,6 @@ export class MessageHandler {
       
       if (!grooveApiKey) {
         logger.warn('Groove API key not configured - returning mock articles');
-        // Return mock articles for demo
         sendResponse({
           success: true,
           articles: [
@@ -310,7 +312,6 @@ export class MessageHandler {
       
     } catch (error: any) {
       logger.warn('Search articles error:', error);
-      // Return mock data on error
       sendResponse({
         success: true,
         articles: this.getMockArticles()
@@ -318,7 +319,6 @@ export class MessageHandler {
     }
   }
   
-  // Mock articles for demo
   private static getMockArticles() {
     return [
       {

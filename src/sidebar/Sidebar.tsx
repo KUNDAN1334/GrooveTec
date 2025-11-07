@@ -24,6 +24,53 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
   const [suggestion, setSuggestion] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   
+
+const extractTicketBody = (): string => {
+  try {
+    logger.log('Attempting to extract ticket body from DOM...');
+    
+    // Try multiple selectors to find ticket content
+    const selectors = [
+      '.conversation-message-body',
+      '.ticket-message-body', 
+      '.message-content',
+      '.message-body',
+      '[data-testid="message-body"]',
+      '.ticket-body',
+      '.conversation-body',
+      '.message-text',
+      '[class*="message-content"]',
+      '[class*="ticket-body"]',
+      '[class*="conversation"]'
+    ];
+    
+    for (const selector of selectors) {
+      const elements = document.querySelectorAll(selector);
+      
+      // Try each matching element
+      for (const element of Array.from(elements)) {
+        if (element?.textContent) {
+          const text = element.textContent.trim();
+          // Must be longer than 10 chars and not look like navigation text
+          if (text.length > 10 && !text.includes('Inbox') && !text.includes('Settings')) {
+            logger.success(`Extracted ${text.length} chars from: ${selector}`);
+            console.log('Extracted text preview:', text.substring(0, 100) + '...');
+            return text;
+          }
+        }
+      }
+    }
+    
+    logger.warn('Could not extract ticket body from page - no matching elements found');
+    return 'Customer inquiry'; 
+    
+  } catch (error) {
+    logger.error('Error extracting ticket body:', error);
+    return 'Customer needs assistance';
+  }
+};
+
+
   useEffect(() => {
     logger.log('Sidebar mounted with ticket:', ticketId);
     
@@ -92,34 +139,111 @@ export const Sidebar: React.FC<SidebarProps> = ({ ticketId, customerEmail }) => 
     }
   };
   
-  // Generate suggestion handler
-  const handleGenerateSuggestion = async () => {
-    setIsGenerating(true);
-    setSuggestion('');
+  
+const handleGenerateSuggestion = async () => {
+  setIsGenerating(true);
+  setSuggestion('');
+  
+  try {
+   
+    let currentTicketData = ticketData;
     
-    try {
-      const response = await sendToBackground({
-        type: MessageType.GENERATE_SUGGESTION,
-        payload: {
-          subject: ticketData?.subject || 'Customer Support Request',
-          message: customerEmail || 'Customer needs help',
-          style: 'professional and friendly'
+    
+    if ((!currentTicketData?.body || !currentTicketData?.subject) && ticketId) {
+      logger.log('Fetching fresh ticket data...');
+      try {
+        const response = await sendToBackground({
+          type: MessageType.FETCH_TICKET_DATA,
+          payload: { ticketId }
+        });
+        
+        if (response.success && response.ticket) {
+          currentTicketData = response.ticket;
+          setTicketData(response.ticket);
+          logger.log('Fresh ticket data loaded');
         }
-      });
-      
-      if (response.success) {
-        setSuggestion(response.suggestion);
-        logger.success('Suggestion generated');
-      } else {
-        alert('Suggestion generation failed: ' + response.error);
+      } catch (err) {
+        logger.warn('Could not fetch ticket data:', err);
       }
-    } catch (error) {
-      logger.error('Suggestion error:', error);
-      alert('Failed to generate suggestion. Check console for details.');
-    } finally {
-      setIsGenerating(false);
     }
-  };
+    
+  
+    let ticketBody = currentTicketData?.body || 
+                     currentTicketData?.message ||
+                     currentTicketData?.summary ||
+                     '';
+    
+  
+    if (!ticketBody || ticketBody.length < 10) {
+      logger.log('Attempting to extract body from page DOM...');
+      ticketBody = extractTicketBody();
+    }
+    
+   
+    if (!ticketBody || ticketBody.length < 10) {
+      ticketBody = `Customer inquiry regarding: ${currentTicketData?.subject || 'support request'}`;
+    }
+    
+    const ticketSubject = currentTicketData?.subject || 'Customer Support Request';
+ 
+    const customerName = currentTicketData?.customer?.name || 
+                        currentTicketData?.customer?.email?.split('@')[0] || 
+                        customerEmail?.split('@')[0] ||
+                        'Customer';
+    
+    const customerEmailValue = customerEmail || 
+                               currentTicketData?.customer?.email || 
+                               'customer@example.com';
+    
+  
+    const contextPayload = {
+      subject: ticketSubject,
+      message: ticketBody, 
+      customerName: customerName,
+      customerEmail: customerEmailValue,
+      category: currentTicketData?.category || 
+                currentTicketData?.tags?.[0] || 
+                'General Support',
+      priority: currentTicketData?.priority || 'Normal',
+      style: 'professional, empathetic, and solution-focused'
+    };
+  
+    console.log('=== GENERATING SUGGESTION WITH CONTEXT ===');
+    console.log('Subject:', contextPayload.subject);
+    console.log('Message (first 150 chars):', contextPayload.message.substring(0, 150) + '...');
+    console.log('Customer Name:', contextPayload.customerName);
+    console.log('Customer Email:', contextPayload.customerEmail);
+    console.log('Category:', contextPayload.category);
+    console.log('Priority:', contextPayload.priority);
+    console.log('===========================================');
+    
+  
+    logger.log('Sending suggestion request to background...');
+    const response = await sendToBackground({
+      type: MessageType.GENERATE_SUGGESTION,
+      payload: contextPayload
+    });
+    
+   
+    if (response.success) {
+      setSuggestion(response.suggestion);
+      logger.success('Unique contextual suggestion generated!');
+      console.log('Generated suggestion length:', response.suggestion.length);
+    } else {
+      logger.error('Suggestion generation failed:', response.error);
+      alert('Suggestion generation failed: ' + response.error);
+    }
+    
+  } catch (error) {
+    logger.error('Suggestion error:', error);
+    console.error('Full error:', error);
+    alert('Failed to generate suggestion. Check console for details.');
+  } finally {
+    setIsGenerating(false);
+  }
+};
+ 
+
   
   if (isLoading) {
     return (

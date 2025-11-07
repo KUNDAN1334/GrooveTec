@@ -11,6 +11,7 @@ interface HistoryTabProps {
 
 interface HistoryTicket {
   id: string;
+  number?: number;
   subject: string;
   status: string;
   created_at: string;
@@ -21,7 +22,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ customerId, ticketId }) 
   const [tickets, setTickets] = useState<HistoryTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [fetchMethod, setFetchMethod] = useState<'api' | 'demo'>('api');
+  const [fetchMethod, setFetchMethod] = useState<'api' | 'demo'>('demo');
   
   useEffect(() => {
     fetchHistory();
@@ -30,12 +31,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ customerId, ticketId }) 
   const fetchHistory = async () => {
     setLoading(true);
     setError(null);
-    setFetchMethod('api');
+    
+    console.log('HISTORY: Starting fetch with:', { customerId, ticketId });
     
     try {
-      // Try to fetch from Groove API first
+      // Method 1: Try to fetch using customer ID
       if (customerId && customerId !== '0') {
-        logger.log('Fetching REAL history for customer:', customerId);
+        console.log('HISTORY: Attempting fetch with customerId:', customerId);
         
         try {
           const response = await sendToBackground({
@@ -46,67 +48,76 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ customerId, ticketId }) 
             }
           });
           
+          console.log('HISTORY: API Response:', response);
+          
           if (response.success && response.tickets && response.tickets.length > 0) {
-            setTickets(response.tickets);
-            logger.success('REAL history loaded:', response.tickets.length);
+            // Filter out current ticket if it exists in the list
+            const filteredTickets = response.tickets
+              .filter((t: any) => t.number?.toString() !== ticketId)
+              .slice(0, 10);
+            
+            setTickets(filteredTickets);
+            setFetchMethod('api');
+            logger.success('HISTORY: Real customer history loaded:', filteredTickets.length);
             setLoading(false);
             return;
           }
         } catch (apiError) {
-          logger.warn('API fetch failed, will try alternative methods');
+          console.error('HISTORY: Customer ID fetch failed:', apiError);
         }
       }
       
-      // If ticket ID exists, fetch related tickets
+      // Method 2: Try to fetch current ticket first, then get customer history
       if (ticketId && ticketId !== '0') {
-        logger.log('Fetching tickets for ticket ID:', ticketId);
+        console.log('HISTORY: Attempting fetch via ticket ID:', ticketId);
         
         try {
-          const response = await sendToBackground({
+          const ticketResponse = await sendToBackground({
             type: MessageType.FETCH_TICKET_DATA,
             payload: { ticketId }
           });
           
-          if (response.success && response.ticket) {
-            const ticketData = response.ticket;
+          console.log('HISTORY: Ticket Response:', ticketResponse);
+          
+          if (ticketResponse.success && ticketResponse.ticket?.customer?.id) {
+            const extractedCustomerId = ticketResponse.ticket.customer.id;
+            console.log('HISTORY: Extracted customer ID:', extractedCustomerId);
             
-            // If ticket has customer info, fetch their history
-            if (ticketData.customer?.id) {
-              logger.log('👤 Found customer ID from ticket:', ticketData.customer.id);
-              
-              const historyResponse = await sendToBackground({
-                type: MessageType.FETCH_CUSTOMER_HISTORY,
-                payload: {
-                  customerId: ticketData.customer.id,
-                  limit: 10
-                }
-              });
-              
-              if (historyResponse.success && historyResponse.tickets) {
-                const otherTickets = historyResponse.tickets
-                  .filter((t: any) => t.id !== ticketId)
-                  .slice(0, 10);
-                
-                setTickets(otherTickets);
-                logger.success('REAL customer history loaded from ticket');
-                setLoading(false);
-                return;
+            const historyResponse = await sendToBackground({
+              type: MessageType.FETCH_CUSTOMER_HISTORY,
+              payload: {
+                customerId: extractedCustomerId,
+                limit: 10
               }
+            });
+            
+            console.log('HISTORY: Customer history response:', historyResponse);
+            
+            if (historyResponse.success && historyResponse.tickets) {
+              const filteredTickets = historyResponse.tickets
+                .filter((t: any) => t.number?.toString() !== ticketId)
+                .slice(0, 10);
+              
+              setTickets(filteredTickets);
+              setFetchMethod('api');
+              logger.success('HISTORY: Real history loaded via ticket');
+              setLoading(false);
+              return;
             }
           }
         } catch (ticketError) {
-          logger.warn('Ticket fetch failed');
+          console.error('HISTORY: Ticket fetch failed:', ticketError);
         }
       }
       
       // Fallback: Use demo data
-      logger.log('Using DEMO data (API not available)');
+      console.warn('HISTORY: All API methods failed, using demo data');
       setFetchMethod('demo');
-      setError('Showing demo history (API connection issue)');
+      setError('Showing demo history (API unavailable)');
       setTickets(getDemoTickets());
       
     } catch (err: any) {
-      logger.error('History fetch error:', err);
+      console.error('HISTORY: Fetch error:', err);
       setFetchMethod('demo');
       setError('Using demo history (error occurred)');
       setTickets(getDemoTickets());
@@ -119,85 +130,115 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ customerId, ticketId }) 
   const getDemoTickets = (): HistoryTicket[] => {
     return [
       {
-        id: '#15',
-        subject: 'Order Tracking Issue',
+        id: '15',
+        number: 15,
+        subject: 'Previous Order Tracking Issue',
         status: 'closed',
-        created_at: '2025-11-03',
-        updated_at: '2025-11-04'
+        created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
       },
       {
-        id: '#14',
-        subject: 'Payment Problem',
+        id: '14',
+        number: 14,
+        subject: 'Payment Inquiry',
         status: 'closed',
-        created_at: '2025-11-02',
-        updated_at: '2025-11-03'
+        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString()
       },
       {
-        id: '#13',
-        subject: 'Shipping Information',
+        id: '13',
+        number: 13,
+        subject: 'Shipping Information Request',
         status: 'closed',
-        created_at: '2025-11-01',
-        updated_at: '2025-11-02'
+        created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString()
       },
       {
-        id: '#12',
+        id: '12',
+        number: 12,
         subject: 'Account Setup Help',
         status: 'closed',
-        created_at: '2025-10-31',
-        updated_at: '2025-11-01'
+        created_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
       },
       {
-        id: '#11',
+        id: '11',
+        number: 11,
         subject: 'Product Return Request',
         status: 'closed',
-        created_at: '2025-10-30',
-        updated_at: '2025-10-31'
+        created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString()
       }
     ];
   };
   
+  // Format date for display
+  const formatDate = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+    } catch {
+      return dateString;
+    }
+  };
+  
   if (loading) {
-    return <div className="tab-loading">Loading history...</div>;
+    return (
+      <div className="tab-loading" style={{ 
+        padding: '40px 20px', 
+        textAlign: 'center',
+        color: '#666'
+      }}>
+        Loading customer history...
+      </div>
+    );
   }
   
-  if (tickets.length === 0) {
+  if (tickets.length === 0 && !error) {
     return (
-      <div className="tab-empty">
-        <div className="empty-icon">📭</div>
-        <div className="empty-text">No previous tickets found</div>
-        {error && (
-          <div style={{ marginTop: '12px', fontSize: '12px', color: '#666' }}>
-            {error}
-          </div>
-        )}
+      <div className="tab-empty" style={{
+        padding: '40px 20px',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
+        <div style={{ fontSize: '14px', color: '#666', fontWeight: 600 }}>
+          No previous tickets found
+        </div>
       </div>
     );
   }
   
   return (
-    <div className="history-tab">
-      {error && fetchMethod === 'demo' && (
+    <div className="history-tab" style={{ padding: '24px' }}>
+      {/* Status Indicator */}
+      {fetchMethod === 'demo' && error && (
         <div style={{
-          background: '#d1f3ff',
-          color: '#0066cc',
+          background: '#fff3cd',
+          border: '1px solid #ffc107',
+          color: '#856404',
           padding: '12px',
-          borderRadius: '8px',
-          marginBottom: '16px',
+          borderRadius: '6px',
+          marginBottom: '20px',
           fontSize: '12px',
           fontWeight: 600,
           textAlign: 'center'
         }}>
-          ℹ️ {error}
+          {error}
         </div>
       )}
       
       {fetchMethod === 'api' && (
         <div style={{
           background: '#d1fae5',
+          border: '1px solid #10b981',
           color: '#065f46',
-          padding: '8px',
+          padding: '10px',
           borderRadius: '6px',
-          marginBottom: '16px',
+          marginBottom: '20px',
           fontSize: '11px',
           fontWeight: 700,
           textAlign: 'center'
@@ -206,29 +247,79 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ customerId, ticketId }) 
         </div>
       )}
       
-      <div className="ticket-list">
+      {/* Tickets List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {tickets.map((ticket) => (
-          <div key={ticket.id} className="ticket-item">
-            <div className="ticket-header">
-              <span className="ticket-id">{ticket.id}</span>
-              <span className={`ticket-status ${ticket.status}`}>
+          <div 
+            key={ticket.id} 
+            style={{
+              background: '#fafafa',
+              border: '1px solid #e5e5e5',
+              borderRadius: '6px',
+              padding: '16px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#120036';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e5e5e5';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            {/* Header */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              marginBottom: '10px'
+            }}>
+              <span style={{
+                fontFamily: 'monospace',
+                fontWeight: 700,
+                color: '#120036',
+                fontSize: '13px'
+              }}>
+                #{ticket.number || ticket.id}
+              </span>
+              <span style={{
+                padding: '4px 10px',
+                background: ticket.status === 'closed' ? '#f5f5f5' : '#d1fae5',
+                color: ticket.status === 'closed' ? '#666' : '#065f46',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontWeight: 600,
+                textTransform: 'capitalize'
+              }}>
                 {ticket.status}
               </span>
             </div>
             
-            <div className="ticket-subject">{ticket.subject}</div>
-            
-            <div className="ticket-dates">
-              <span>
-                <span className="date-label">Created:</span>
-                <span className="date-value"> {new Date(ticket.created_at).toLocaleDateString()}</span>
-              </span>
+            {/* Subject */}
+            <div style={{
+              fontSize: '13px',
+              fontWeight: 600,
+              color: '#000',
+              marginBottom: '12px',
+              lineHeight: 1.5
+            }}>
+              {ticket.subject}
             </div>
             
-            <div className="ticket-dates">
+            {/* Dates */}
+            <div style={{
+              display: 'flex',
+              gap: '16px',
+              fontSize: '11px',
+              color: '#999',
+              fontWeight: 500
+            }}>
               <span>
-                <span className="date-label">Updated:</span>
-                <span className="date-value"> {new Date(ticket.updated_at).toLocaleDateString()}</span>
+                <strong style={{ color: '#666' }}>Created:</strong> {formatDate(ticket.created_at)}
+              </span>
+              <span>
+                <strong style={{ color: '#666' }}>Updated:</strong> {formatDate(ticket.updated_at)}
               </span>
             </div>
           </div>
